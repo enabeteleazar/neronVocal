@@ -32,6 +32,11 @@ interface AudioResponse {
   error?:         string
 }
 
+interface Identity {
+  name?: string
+  role?: string
+}
+
 /* ------------------------------------------------------------------ */
 /* Constants                                                            */
 /* ------------------------------------------------------------------ */
@@ -43,8 +48,8 @@ const AGENTS_POLL_MS = 10_000
 const STATUS: Record<VoiceState, string> = {
   idle:       'Appuyer pour parler',
   listening:  'Enregistrement en cours...',
-  processing: 'Néron réfléchit...',
-  speaking:   'Néron parle',
+  processing: 'Traitement en cours...',
+  speaking:   'Réponse vocale',
 }
 
 const AGENT_LABELS: Record<string, string> = {
@@ -181,6 +186,7 @@ export default function Home() {
   /* Agent status */
   const [agents,    setAgents]    = useState<Record<string, AgentInfo> | null>(null)
   const [connected, setConnected] = useState<boolean | null>(null)
+  const [identity, setIdentity] = useState<Identity>({})
 
   /* ---------- Refs ---------- */
   const voiceStateRef    = useRef<VoiceState>('idle')
@@ -221,6 +227,18 @@ export default function Home() {
     const id = setInterval(fetchAgents, AGENTS_POLL_MS)
     return () => clearInterval(id)
   }, [fetchAgents])
+
+  useEffect(() => {
+    const loadIdentity = () => {
+      fetch('/api/identity', { cache: 'no-store' })
+        .then(response => response.json() as Promise<Identity>)
+        .then(setIdentity)
+        .catch(() => {})
+    }
+    loadIdentity()
+    const id = setInterval(loadIdentity, 6000)
+    return () => clearInterval(id)
+  }, [])
 
   /* ---------- Waveform ---------- */
   const initWaveform = useCallback(() => {
@@ -395,16 +413,16 @@ export default function Home() {
 
         if (!result.response) { setVoiceState('idle'); return }
 
-        addMessage('neron', 'Néron', result.response)
+        addMessage('neron', identity.name ?? 'Assistant', result.response)
         setVoiceState('speaking')
         await speakText(result.response)
         setVoiceState('idle')
       } catch (e) {
-        addMessage('error', 'Néron', e instanceof Error ? e.message : 'Erreur inconnue')
+        addMessage('error', identity.name ?? 'Assistant', e instanceof Error ? e.message : 'Erreur inconnue')
         setVoiceState('idle')
       }
     }
-  }, [addMessage, setVoiceState, startRecording, startWaveform, stopRecording, stopWaveform, sendAudio, speakText])
+  }, [addMessage, identity.name, setVoiceState, startRecording, startWaveform, stopRecording, stopWaveform, sendAudio, speakText])
 
   /* ---------- Init ---------- */
   useEffect(() => {
@@ -448,8 +466,8 @@ export default function Home() {
       <div id="app">
         {/* Header */}
         <header className={`header${hasMsgs ? ' dimmed' : ''}`}>
-          <h1 className="logo">Neron</h1>
-          <p className="tagline">Interface Vocale</p>
+          <h1 className="logo">{identity.name ?? 'Interface'}</h1>
+          <p className="tagline">{identity.role ?? 'Interface Vocale'}</p>
         </header>
 
         {/* Agent status bar */}
@@ -461,7 +479,11 @@ export default function Home() {
           >
             <span className="agent-dot" style={{ background: connColor }} />
             <span className="status-bar-label">
-              {connected === null ? 'Connexion...' : connected ? 'Néron actif' : 'Néron hors ligne'}
+              {connected === null
+                ? 'Connexion...'
+                : connected
+                  ? `${identity.name ?? 'Système'} actif`
+                  : `${identity.name ?? 'Système'} hors ligne`}
             </span>
             <span className="status-bar-caret">{panelOpen ? '▲' : '▼'}</span>
           </button>
@@ -479,7 +501,7 @@ export default function Home() {
             <button
               className="orb-wrapper"
               onClick={handleOrb}
-              aria-label="Parler à Néron"
+              aria-label={`Parler à ${identity.name ?? "l'assistant"}`}
             >
               <div className="orb-glow" />
               <div className="orb-ring ring-1" />

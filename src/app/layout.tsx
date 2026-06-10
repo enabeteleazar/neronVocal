@@ -18,8 +18,8 @@ const jetbrains = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Neron — Interface Vocale',
-  description: 'Interface vocale pour Néron',
+  title: 'Interface Vocale',
+  description: 'Interface vocale du système',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

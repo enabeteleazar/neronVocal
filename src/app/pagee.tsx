@@ -80,6 +80,7 @@ function Donut({ value, label }: { value: string; label: string }) {
 
 export default function Home() {
   const [time, setTime] = useState('')
+  const [identity, setIdentity] = useState<Record<string, string>>({})
 
   useEffect(() => {
     const tick = () => setTime(new Date().toLocaleTimeString('fr-FR'))
@@ -88,14 +89,24 @@ export default function Home() {
     return () => clearInterval(id)
   }, [])
 
+  useEffect(() => {
+    fetch('/api/identity', { cache: 'no-store' })
+      .then(response => response.json() as Promise<Record<string, string>>)
+      .then(setIdentity)
+      .catch(() => {})
+  }, [])
+
+  const name = identity.name ?? 'Système'
+  const initial = name.slice(0, 1).toUpperCase()
+
   return (
     <main className="dashboard">
       <header className="topbar">
         <div className="brand">
-          <div className="flag">N</div>
+          <div className="flag">{initial}</div>
           <div>
-            <h1>NÉRON OS</h1>
-            <p>PERSONAL AI OPERATIONS</p>
+            <h1>{name} OS</h1>
+            <p>{identity.role ?? 'OPERATIONS'}</p>
           </div>
         </div>
 
@@ -110,9 +121,9 @@ export default function Home() {
         </div>
 
         <div className="admin">
-          <div className="admin-avatar">N</div>
+          <div className="admin-avatar">{initial}</div>
           <div>
-            <strong>NÉRON ADMIN</strong>
+            <strong>{name} ADMIN</strong>
             <span>Système Principal</span>
           </div>
         </div>
@@ -139,14 +150,14 @@ export default function Home() {
       </aside>
 
       <section className="grid">
-        <Panel title="NERON OVERVIEW" className="overview">
+        <Panel title={`${name.toUpperCase()} OVERVIEW`} className="overview">
           <div className="profile">
-            <div className="portrait">N</div>
+            <div className="portrait">{initial}</div>
             <div className="profile-info">
-              <h2>Néron Core</h2>
-              <p>Assistant IA personnel</p>
+              <h2>{name} Core</h2>
+              <p>{identity.role ?? 'Système principal'}</p>
               <dl>
-                <dt>Version</dt><dd>3.2.x</dd>
+                <dt>Version</dt><dd>{identity.version ?? '—'}</dd>
                 <dt>Mode</dt><dd>Autonome</dd>
                 <dt>Status</dt><dd className="green">Active</dd>
               </dl>
@@ -309,9 +320,9 @@ export default function Home() {
       </section>
 
       <footer className="footer">
-        <span>© 2026 NéronOS Tracker. All rights reserved.</span>
+        <span>© 2026 {name} OS Tracker. All rights reserved.</span>
         <span>Privacy Policy | Terms of Service | Contact Support</span>
-        <span>v3.2.1</span>
+        <span>v{identity.version ?? '—'}</span>
       </footer>
     </main>
   )
